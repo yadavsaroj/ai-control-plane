@@ -9,6 +9,6 @@ Reference architecture and reference implementation for operating production AI 
 - `ROADMAP.md` tracks the initial build path.
 - `THINKING.md` collects working notes and open questions.
 - `AI_NATIVE_ENGINEERING_PLAYBOOK.md` defines practical engineering practices.
-- `adr/` records architecture decisions.
+- `adrs/` records architecture decisions.
 - `architecture/` contains system design notes.
 - `reference-implementation/` contains the runnable implementation as it evolves.
