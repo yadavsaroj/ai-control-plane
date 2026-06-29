@@ -1,4 +1,4 @@
-# 0001: Why AI Control Plane
+# ACP-0001: Why AI Control Plane
 
 ## Status
 
