@@ -1,17 +1,24 @@
-# ACP-XXXX: Decision Title
+# ACP-XXXX
 
-## Status
+Status:
+Author:
+Created:
+Updated:
 
-Proposed
+## Summary
 
 ## Context
 
-Describe the problem, constraints, and forces that make this decision necessary.
+## Problem Statement
 
-## Decision
+## Proposal
 
-Describe the decision and the reasoning behind it.
+## Alternatives Considered
+
+## Trade-offs
+
+## Open Questions
 
 ## Consequences
 
-Describe the expected tradeoffs, follow-up work, and operational impact.
+## Related Documents
