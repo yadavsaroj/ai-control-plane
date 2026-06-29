@@ -59,9 +59,9 @@ Platform teams provide the shared operational capabilities required to make thos
 
 ## Start Here
 
-1. **VISION.md**
-2. **architecture/overview.md**
-3. **architecture-decisions/ACP-0001-why-ai-control-plane.md**
+1. **[VISION.md](https://github.com/yadavsaroj/ai-control-plane/blob/main/VISION.md)**
+2. **[architecture/overview.md](https://github.com/yadavsaroj/ai-control-plane/blob/main/architecture/overview.md)**
+3. **[architecture-decisions/ACP-0001-why-ai-control-plane.md](https://github.com/yadavsaroj/ai-control-plane/blob/main/architecture-decisions/ACP-0001-why-ai-control-plane.md)**
 
 ---
 
