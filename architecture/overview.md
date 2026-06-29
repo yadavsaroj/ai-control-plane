@@ -1,4 +1,4 @@
-# AI Control Plane Architecture Overview
+# AI Control Plane Reference Architecture
 
 **Status:** Draft
 **Version:** 0.1
@@ -8,281 +8,109 @@
 
 # Purpose
 
-This document provides the high-level reference architecture for the **AI Control Plane**.
+This document describes the reference architecture for the AI Control Plane.
 
-The goal is to define the shared operational layer required to run production AI systems at enterprise scale. This architecture is intentionally vendor-neutral and framework-agnostic. It is designed to complement foundation models, agent frameworks, retrieval systems, and AI applications rather than replace them.
+The AI Control Plane is the shared operational platform responsible for operating production AI systems at enterprise scale.
 
----
-
-# Architectural Thesis
-
-AI applications are increasingly becoming production systems.
-
-As they move into production, they inherit many of the same operational concerns as distributed systems:
-
-* Reliability
-* Observability
-* Security
-* Governance
-* Cost management
-* Capacity planning
-* Incident response
-* Change management
-
-In traditional cloud platforms, these concerns are handled by shared platform services.
-
-The AI Control Plane applies the same principle to AI systems.
-
-> Capabilities that every production AI application needs should be provided by the platform, not rebuilt by every application team.
+It complements foundation models, agent frameworks, and AI applications by centralizing the operational capabilities that every production AI system requires.
 
 ---
 
-# High-Level Architecture
+# Architectural Principles
+
+The architecture is guided by three principles.
+
+## 1. Shared capabilities belong in the platform.
+
+If every AI application requires a capability, it should become a platform service.
+
+---
+
+## 2. Separate application logic from operational logic.
+
+Application teams should build intelligent experiences.
+
+Platform teams should own routing, governance, observability, reliability, and operations.
+
+---
+
+## 3. Platform abstractions should remain vendor-neutral.
+
+Applications should not depend directly on individual model providers.
+
+---
+
+# Reference Architecture
 
 ```text
-                           AI Applications
-                  Agents | Copilots | APIs | Workflows
-                                   |
-                                   v
-                       +-----------------------+
-                       |   AI Control Plane    |
-                       +-----------------------+
-                       | AI Gateway            |
-                       | Model Routing         |
-                       | Identity & Policy     |
-                       | Observability         |
-                       | Evaluation            |
-                       | Reliability & SLOs    |
-                       | Cost Management       |
-                       | Capacity Planning     |
-                       | Incident Management   |
-                       | Developer Platform    |
-                       +-----------------------+
-                                   |
-                                   v
-                 Foundation Models & AI Infrastructure
-              OpenAI | Anthropic | Gemini | Llama | vLLM
+                        AI Applications
+              Agents • Copilots • Enterprise Apps
+                               │
+                               ▼
+┌──────────────────────────────────────────────────────────────┐
+│                    AI CONTROL PLANE                          │
+│                                                              │
+│  Gateway        Routing        Identity & Policy             │
+│                                                              │
+│  Observability  Evaluation    Reliability & SLOs             │
+│                                                              │
+│  Cost Mgmt      Capacity      Incident Management            │
+│                                                              │
+│  Developer Platform (SDK • CLI • Templates)                 │
+└──────────────────────────────────────────────────────────────┘
+                               │
+                               ▼
+               Foundation Models & AI Infrastructure
 ```
 
 ---
 
-# Core Components
+# Responsibilities
 
-## AI Gateway
-
-The AI Gateway is the entry point for model and agent requests.
-
-It provides:
-
-* Provider abstraction
-* Request routing
-* Authentication
-* Rate limiting
-* Retries and failover
-* Request and response logging
-* Streaming support
-
-The gateway ensures application teams do not need to integrate separately with every model provider.
-
----
-
-## Model Routing
-
-Model Routing determines which model or provider should handle a request.
-
-Routing decisions may consider:
-
-* Cost
-* Latency
-* Quality
-* Availability
-* Region
-* Data sensitivity
-* Task type
-* Customer or tenant policy
-
-Over time, routing may evolve from static configuration to policy-driven or feedback-driven decision making.
-
----
-
-## Identity and Policy
-
-Identity and Policy define who is allowed to use which AI capabilities and under what conditions.
-
-This layer provides:
-
-* Application identity
-* User identity propagation
-* Role-based access control
-* Tenant isolation
-* Model access policies
-* Data handling policies
-* Audit logging
-
-Policy should be enforced centrally rather than implemented independently in every application.
-
----
-
-## Observability
-
-Observability makes AI systems measurable and debuggable.
-
-The platform should capture:
-
-* Latency
-* Errors
-* Token usage
-* Cost
-* Model selection
-* Prompt versions
-* Tool calls
-* Agent traces
-* Evaluation outcomes
-* Policy decisions
-
-AI observability must go beyond infrastructure metrics. It should make model behavior, prompt changes, and quality signals visible.
-
----
-
-## Evaluation
-
-Evaluation provides a structured way to measure AI system quality over time.
-
-It may include:
-
-* Golden datasets
-* Regression tests
-* Prompt evaluations
-* Model comparisons
-* Human review workflows
-* Online quality monitoring
-* Failure classification
-
-Evaluation should be treated as a continuous platform capability, not a one-time benchmark.
-
----
-
-## Reliability and SLOs
-
-Production AI systems need reliability objectives.
-
-Traditional service reliability focuses on availability, latency, and error rates. AI systems may require additional reliability dimensions, including:
-
-* Response quality
-* Tool execution success
-* Retrieval quality
-* Policy compliance
-* Safe degradation
-* Human escalation paths
-
-The AI Control Plane should help teams define, measure, and operate against AI-specific service objectives.
-
----
-
-## Cost Management
-
-AI workloads can introduce significant and variable cost.
-
-Cost Management should provide:
-
-* Spend attribution by team, application, customer, and model
-* Token usage tracking
-* Budget alerts
-* Cost-aware routing
-* Caching opportunities
-* Model substitution analysis
-* Forecasting
-
-Cost should be visible as an operational metric, not discovered after the fact.
-
----
-
-## Capacity Planning
-
-Capacity Planning helps organizations understand and forecast AI infrastructure demand.
-
-This includes:
-
-* Request volume
-* Token volume
-* Provider limits
-* Regional capacity
-* GPU utilization
-* Queue depth
-* Scaling requirements
-
-For self-hosted models, capacity planning becomes especially important because infrastructure constraints directly affect reliability and cost.
-
----
-
-## Incident Management
-
-AI incidents may not look like traditional service outages.
+The AI Control Plane owns operational capabilities shared across applications.
 
 Examples include:
 
-* Sudden cost spikes
-* Quality regressions
-* Prompt failures
-* Tool execution failures
-* Model provider degradation
-* Policy violations
-* Retrieval failures
-* Unsafe or incorrect outputs
+* Gateway
+* Model Routing
+* Identity
+* Policy
+* Observability
+* Evaluation
+* Reliability
+* Incident Management
+* Cost Management
+* Capacity Planning
 
-The AI Control Plane should support incident detection, trace collection, change correlation, runbook integration, and post-incident analysis.
-
----
-
-## Developer Platform
-
-The Developer Platform makes the correct path easy for application teams.
-
-It should provide:
-
-* SDKs
-* CLI tools
-* Local development support
-* Sandboxes
-* Templates
-* Documentation
-* Examples
-* Testing workflows
-* Deployment guidance
-
-The best platform reduces cognitive load while preserving operational standards.
+These capabilities enable application teams to focus on business problems rather than operational infrastructure.
 
 ---
 
 # Platform Boundaries
 
-The AI Control Plane should own shared operational capabilities.
-
-It should not own application-specific business logic.
-
 ## Owned by the AI Control Plane
 
 * Model access
 * Routing
-* Policy enforcement
-* Observability
+* Authentication
+* Authorization
+* Governance
+* Policy
+* Telemetry
 * Evaluation infrastructure
-* Reliability patterns
-* Cost and capacity visibility
+* Reliability
 * Operational tooling
-* Governance workflows
 
-## Owned by Application Teams
+---
 
-* Product experience
-* Domain-specific prompts
-* Business workflows
-* Application-specific tools
+## Owned by Applications
+
+* Business logic
+* Product workflows
+* Prompt design
 * User experience
+* Domain-specific evaluation
 * Product metrics
-* Domain-specific evaluation criteria
-
-This boundary allows platform teams to provide leverage without slowing product teams down.
 
 ---
 
@@ -292,84 +120,33 @@ Agent frameworks help developers build AI applications.
 
 The AI Control Plane helps organizations operate those applications.
 
-Examples of agent framework responsibilities:
-
-* Planning
-* Memory
-* Tool calling
-* Workflow execution
-* Multi-agent coordination
-
-Examples of AI Control Plane responsibilities:
-
-* Routing
-* Governance
-* Observability
-* Evaluation
-* Reliability
-* Cost management
-* Incident response
-
-The two layers are complementary.
-
-Agent frameworks define application behavior.
-
-The AI Control Plane defines operational behavior.
+These layers are complementary rather than competing.
 
 ---
 
-# Reference Architecture Evolution
+# Future Architecture
 
-This architecture will evolve through future documents covering:
+The reference architecture will evolve through dedicated documents covering:
 
 * AI Gateway
 * Model Routing
-* Identity and Policy
+* Identity & Policy
 * Observability
 * Evaluation
-* Reliability and SLOs
+* Reliability
 * Incident Management
 * Cost Management
 * Capacity Planning
 * Developer Platform
 
-Each architecture document should describe:
-
-* Problem statement
-* Design goals
-* Alternatives considered
-* Proposed architecture
-* Trade-offs
-* Related architecture decisions
-* Reference implementation status
-
----
-
-# Open Questions
-
-This architecture intentionally leaves several questions open:
-
-* What should an AI-specific SLO include?
-* How should quality regressions be detected automatically?
-* Where should prompt ownership live?
-* How should model routing balance cost, quality, and latency?
-* How much policy should be enforced synchronously?
-* What should an AI incident severity model look like?
-* How should platform teams support both hosted and self-hosted models?
-
-These questions will be explored through architecture proposals and implementation experiments.
+Each document will explore one capability in depth and validate the design through a corresponding reference implementation.
 
 ---
 
 # Summary
 
-The AI Control Plane is the operational layer for production AI systems.
+The AI Control Plane introduces a shared operational layer for AI systems.
 
-It exists because the challenges of operating AI systems at scale are different from, but related to, the challenges of operating traditional distributed systems.
+Its goal is not to increase model intelligence.
 
-The core architectural idea is simple:
-
-> AI application teams should build intelligent experiences.
-> AI platform teams should provide the shared operational capabilities that make those experiences reliable, observable, secure, governed, and cost-efficient.
-
-This separation of concerns is the foundation of the AI Control Plane.
+Its goal is to make AI systems dependable, observable, secure, governed, and scalable as organizations adopt AI across products and business operations.
