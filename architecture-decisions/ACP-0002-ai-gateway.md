@@ -224,6 +224,45 @@ These questions will be addressed in future proposals and implementation milesto
 
 ---
 
+# Evolution Strategy
+
+The AI Gateway is designed to evolve incrementally while preserving a stable application interface.
+
+Applications should never need to change their integration as the gateway gains new capabilities. Instead, new operational capabilities are layered onto the existing request path.
+
+The planned evolution is:
+
+v0.2 — Foundation
+- Provider abstraction
+- Static routing
+- Basic retries
+- Error normalization
+
+v0.3 — Observability
+- Structured request metadata
+- Metrics
+- Searchable request history
+
+v0.4 — Identity & Policy
+- Application identity
+- Authorization
+- Rate limiting
+- Audit
+
+v0.5 — Dynamic Routing
+- Hot-reload routing
+- Weighted routing
+- Failover
+- Model aliases
+
+...
+
+This incremental approach allows the platform to mature without requiring application changes.
+
+The application contract remains stable:
+
+POST /v1/chat/completions
+
 # Related Documents
 
 * `VISION.md`
