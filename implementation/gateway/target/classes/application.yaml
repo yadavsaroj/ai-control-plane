@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: ai-gateway
+  threads:
+    virtual:
+      enabled: true
+
+server:
+  port: 8080
+  tomcat:
+    connection-timeout: 5s
+
+# Gateway configuration — fields are added as capabilities are introduced.
+# See GatewayConfig.java for the binding class.
+gateway: {}
