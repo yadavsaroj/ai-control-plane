@@ -163,38 +163,87 @@ implementation/gateway/
 │   ├── main/
 │   │   ├── java/com/aicontrolplane/gateway/
 │   │   │   ├── GatewayApplication.java
-│   │   │   ├── api/
+│   │   │   │
+│   │   │   ├── core/                          # Internal domain model — no Jackson, no HTTP
+│   │   │   │   ├── ChatRequest.java
+│   │   │   │   ├── ChatResponse.java
+│   │   │   │   ├── Message.java
+│   │   │   │   ├── Choice.java
+│   │   │   │   ├── Usage.java
+│   │   │   │   └── ModelInfo.java
+│   │   │   │
+│   │   │   ├── api/                           # HTTP boundary
 │   │   │   │   ├── ChatController.java
 │   │   │   │   ├── ModelsController.java
-│   │   │   │   └── HealthController.java
-│   │   │   ├── middleware/
+│   │   │   │   ├── HealthController.java
+│   │   │   │   └── dto/                       # OpenAI-compatible wire format
+│   │   │   │       ├── ChatCompletionRequest.java
+│   │   │   │       ├── ChatCompletionResponse.java
+│   │   │   │       ├── MessageDto.java
+│   │   │   │       ├── ChoiceDto.java
+│   │   │   │       ├── UsageDto.java
+│   │   │   │       ├── ErrorResponse.java
+│   │   │   │       └── ErrorDetail.java
+│   │   │   │
+│   │   │   ├── middleware/                    # Servlet filters
+│   │   │   │   ├── GatewayHeaders.java        # Header name constants
 │   │   │   │   ├── RequestIdFilter.java
 │   │   │   │   ├── AuthFilter.java
-│   │   │   │   └── LoggingFilter.java
-│   │   │   ├── provider/
+│   │   │   │   └── RequestLoggingFilter.java
+│   │   │   │
+│   │   │   ├── provider/                      # Provider abstraction and adapters
 │   │   │   │   ├── Provider.java
+│   │   │   │   ├── ProviderRegistry.java
 │   │   │   │   ├── mock/MockProvider.java
-│   │   │   │   ├── anthropic/AnthropicProvider.java
+│   │   │   │   ├── anthropic/
+│   │   │   │   │   ├── AnthropicProvider.java
+│   │   │   │   │   └── dto/
+│   │   │   │   │       ├── AnthropicRequest.java
+│   │   │   │   │       └── AnthropicResponse.java
 │   │   │   │   └── openai/OpenAiProvider.java
+│   │   │   │
 │   │   │   ├── router/
 │   │   │   │   ├── Router.java
+│   │   │   │   ├── RouteResult.java
 │   │   │   │   └── StaticRouter.java
+│   │   │   │
 │   │   │   ├── metadata/
-│   │   │   │   └── MetadataRecorder.java
-│   │   │   ├── errors/
-│   │   │   │   └── GatewayException.java
+│   │   │   │   ├── MetadataRecorder.java
+│   │   │   │   ├── RequestRecord.java
+│   │   │   │   └── AsyncStdoutRecorder.java
+│   │   │   │
+│   │   │   ├── error/
+│   │   │   │   ├── GatewayException.java
+│   │   │   │   ├── ErrorCategory.java
+│   │   │   │   └── GlobalExceptionHandler.java
+│   │   │   │
 │   │   │   └── config/
-│   │   │       └── GatewayConfig.java
+│   │   │       ├── GatewayConfig.java
+│   │   │       └── AppBeans.java
+│   │   │
 │   │   └── resources/
-│   │       └── application.yaml
+│   │       ├── application.yaml
+│   │       └── logback-spring.xml
+│   │
 │   └── test/
 │       └── java/com/aicontrolplane/gateway/
+│
 ├── pom.xml
 ├── Dockerfile
+├── Makefile
+├── .env.example
 └── README.md
 ```
 
-The `provider`, `router`, and `metadata` packages each contain one interface and one or more implementations. New providers, routers, and recorders are added without modifying existing code.
+**Design rationale for `core/`:**
+
+`core/` is the internal domain model of the gateway. It has no Jackson annotations, no HTTP concerns, and no dependency on anything else in the codebase. `provider`, `router`, and `metadata` all depend on `core/` types — not on `api/dto/`.
+
+`api/dto/` is the OpenAI-compatible HTTP wire format. It carries Jackson annotations for JSON serialization and contains OpenAI-specific fields (`object`, `created`, `finish_reason`, `prompt_tokens`). The controller maps between `api/dto/` and `core/` at the HTTP boundary.
+
+**Conscious trade-off for v0.2:**
+
+`core/` and `api/dto/` are structurally similar in this version because the gateway speaks OpenAI format externally. As the platform evolves — native ACP API, richer internal routing metadata, multi-modal support — the two layers will diverge naturally. Keeping them separate from the start prevents `api/dto/` types from becoming the internal domain model by default.
 
 ---
 
@@ -256,6 +305,14 @@ The v0.2 implementation defines routing as an explicit extension point. The `Rou
 The gateway provides a place for identity and authorization checks.
 
 For v0.2, authentication is a simple API key validated in a servlet filter. The resolved application ID is attached to the request context and flows through to metadata capture.
+
+**Application ID source in v0.2:**
+
+The caller supplies `X-Application-Id` as an HTTP header. `AuthFilter` reads this header after validating the API key and attaches the value to the request context. All downstream components (metadata capture, logging) read the application ID from context, not directly from the header.
+
+This is an explicit trust decision: in v0.2, the gateway trusts the caller to self-identify. This is acceptable for internal platform use where callers are known services.
+
+In v0.5, `X-Application-Id` is replaced by identity derived from the verified token. The header will be ignored or rejected.
 
 Future versions may support:
 
@@ -444,6 +501,94 @@ providers:
 ```
 
 Provider credentials are never stored in YAML. They resolve from environment variables at startup. The application fails fast at startup if a required credential is missing.
+
+---
+
+# Dependency Rules
+
+These rules define which packages may import from which other packages. They are enforced by convention in v0.2 and by ArchUnit tests in a future milestone.
+
+## Allowed Dependencies
+
+```
+config        →  everything (wiring layer only — no business logic)
+
+api           →  core, error
+api/dto       →  (no internal dependencies — wire format only)
+
+middleware    →  error
+              →  (reads applicationId from request context, not from core types)
+
+provider      →  core, error
+router        →  core, error, config
+metadata      →  core  (RequestRecord carries core types)
+error         →  (nothing — foundation layer)
+core          →  (nothing — foundation layer)
+```
+
+## Dependency Diagram
+
+```
+        config
+          │
+          ▼ (wires everything together)
+         api  ◄──────────────────── api/dto
+          │    (maps dto ↔ core)
+          │
+          ├──────────────┬──────────────┐
+          ▼              ▼              ▼
+       router        provider       metadata
+          │              │              │
+          └──────────────┴──────────────┘
+                         │
+                         ▼
+                        core  ◄──────── error
+                     (no deps)         (no deps)
+
+       middleware
+          │
+          ▼
+         error
+```
+
+## Explicitly Forbidden
+
+| Package | Must NOT import |
+|---|---|
+| `core` | anything |
+| `error` | anything |
+| `api/dto` | `core`, `provider`, `router`, `metadata` |
+| `provider` | `router`, `middleware`, `metadata`, `api/dto` |
+| `router` | `provider`, `middleware`, `metadata`, `api/dto` |
+| `middleware` | `provider`, `router`, `metadata`, `core` |
+| `api` | `config` (config depends on api, never the reverse) |
+
+The key invariant: `api/dto` types never appear inside `provider`, `router`, or `metadata`. Internal logic works exclusively with `core` types. The controller is the only place that touches both `api/dto` and `core` — mapping between them at the HTTP boundary.
+
+## Future Enforcement: ArchUnit
+
+In a future milestone, these rules will be enforced automatically using [ArchUnit](https://www.archunit.org):
+
+```java
+// Example — enforced at test time, fails the build on violation
+@AnalyzeClasses(packages = "com.aicontrolplane.gateway")
+class DependencyRulesTest {
+
+    @ArchTest
+    ArchRule core_has_no_outbound_dependencies =
+        noClasses().that().resideInAPackage("..core..")
+                   .should().dependOnClassesThat()
+                   .resideOutsideOfPackage("..core..");
+
+    @ArchTest
+    ArchRule provider_does_not_depend_on_api_dto =
+        noClasses().that().resideInAPackage("..provider..")
+                   .should().dependOnClassesThat()
+                   .resideInAPackage("..api.dto..");
+}
+```
+
+This is a strong engineering discipline signal: architecture violations become build failures, not code review comments.
 
 ---
 
